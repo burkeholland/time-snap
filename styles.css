@@ -1,0 +1,8 @@
+/* YouTube Frame Snap - Step 1 skeleton styles.
+ * Real styling for button & toast will arrive in Step 6.
+ */
+
+/* Placeholder rule to verify CSS loads (harmless). */
+:root {
+  --yt-frame-snap-initialized: 1;
+}
