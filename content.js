@@ -91,12 +91,95 @@
     tryInject();
   }
 
-  // Step 3+: observeNavigation() will be implemented later.
+  // --- Navigation Observation (Step 3) ---
+  // Tracks YouTube's SPA-style navigation to (re)inject the button when the video changes.
+  let lastVideoId = null;
+  let injectDebounceHandle = null;
+
+  function getCurrentVideoId() {
+    try {
+      const url = new URL(location.href);
+      // Standard watch pages: v param
+      const vid = url.searchParams.get('v');
+      if (vid) return vid;
+      // Shorts format: /shorts/<id>
+      const m = location.pathname.match(/\/shorts\/([a-zA-Z0-9_-]{5,})/);
+      if (m) return m[1];
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function isWatchOrShortsPage() {
+    // Basic filter to avoid running on channel pages / search / home etc.
+    if (!/^https?:\/\/(www\.)?youtube\.com/.test(location.href)) return false;
+    if (location.pathname === '/watch' && getCurrentVideoId()) return true;
+    if (/^\/shorts\//.test(location.pathname)) return true;
+    return false;
+  }
+
+  function scheduleInject(reason = 'nav') {
+    // Debounce rapid DOM mutations.
+    if (injectDebounceHandle) clearTimeout(injectDebounceHandle);
+    injectDebounceHandle = setTimeout(() => {
+      injectDebounceHandle = null;
+      if (!isWatchOrShortsPage()) return; // Fast exit if not relevant page.
+      const currentId = getCurrentVideoId();
+      if (!currentId) return;
+      const buttonPresent = !!document.getElementById(BUTTON_ID);
+      // Use body dataset to remember last injected id to prevent redundant work.
+      const lastInjected = document.body.dataset.ytFrameSnapLastInjected;
+      const idChanged = currentId !== lastInjected;
+      if (idChanged || !buttonPresent) {
+        lastVideoId = currentId; // track even if not used elsewhere yet
+        // Delay slightly to allow YouTube to lay out title/actions.
+        setTimeout(() => {
+          if (injectButton()) {
+            document.body.dataset.ytFrameSnapLastInjected = currentId;
+          }
+        }, 150);
+      }
+    }, 250); // 250ms debounce
+  }
+
   function observeNavigation() {
-    // No-op in Step 2.
+    lastVideoId = getCurrentVideoId();
+    // Primary MutationObserver: watch high-level app container for structural changes.
+    const appRoot = document.querySelector('ytd-app') || document.body;
+    const mo = new MutationObserver((mutations) => {
+      // Cheap filter: if no added nodes with element children, skip.
+      let meaningful = false;
+      for (const m of mutations) {
+        if (m.addedNodes && m.addedNodes.length) { meaningful = true; break; }
+      }
+      if (meaningful) scheduleInject('mutation');
+    });
+    try {
+      mo.observe(appRoot, { childList: true, subtree: true });
+    } catch (e) {
+      console.debug(LOG_PREFIX, 'Failed to observe app root', e);
+    }
+
+    // Listen to YouTube internal navigation events if present.
+    window.addEventListener('yt-navigate-finish', () => scheduleInject('yt-nav'), true);
+    window.addEventListener('yt-page-data-updated', () => scheduleInject('yt-data'), true);
+    // History / back-forward
+    window.addEventListener('popstate', () => scheduleInject('popstate'));
+    // Tab visibility return (ensure reinjection if DOM changed while hidden)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') scheduleInject('visible');
+    });
+
+    // Fallback periodic checker (lightweight) in case events missed.
+  setInterval(() => scheduleInject('interval'), 8000);
+
+    // Initial attempt after short delay (in addition to initial injection retries)
+    scheduleInject('init');
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    attemptInitialInjection();
+    attemptInitialInjection(); // fast path for first load
+    observeNavigation();       // set up ongoing SPA monitoring
   });
 })();
