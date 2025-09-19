@@ -36,3 +36,13 @@
   .yt-frame-snap-btn { background: rgba(255,255,255,0.18); color: #fff; }
   .yt-frame-snap-btn:hover { background: rgba(255,255,255,0.3); }
 }
+
+/* Layout helper so button sits inline left of the title */
+.yt-frame-snap-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Ensure the button never stretches */
+.yt-frame-snap-title-row > .yt-frame-snap-btn { flex: 0 0 auto; }

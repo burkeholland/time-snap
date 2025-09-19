@@ -7,9 +7,12 @@
   const CAMERA_SVG = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9.4 5l1.2-2h2.8l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2h5.4zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-2.2A2.8 2.8 0 1 1 12 9a2.8 2.8 0 0 1 0 5.8z"/></svg>';
 
   // Find a reasonable container near title / actions.
+  // We special-case the actual title container so we can place the button *before* the <h1>
+  // to keep the button visually locked to the left of the title text (instead of dropping below).
   function findInjectionPoint() {
+    const titleContainer = document.querySelector('#above-the-fold #title');
+    if (titleContainer) return titleContainer;
     const candidateSelectors = [
-      '#above-the-fold #title',
       '#top-level-buttons-computed',
       '#above-the-fold',
       '#primary-inner'
@@ -33,12 +36,21 @@
     const btn = document.createElement('button');
     btn.id = BUTTON_ID;
     btn.type = 'button';
-    btn.className = 'yt-frame-snap-btn'; // styling to arrive in later step
+    btn.className = 'yt-frame-snap-btn';
     btn.setAttribute('aria-label', 'Capture current frame');
     btn.title = 'Capture current frame';
     btn.innerHTML = CAMERA_SVG;
     btn.addEventListener('click', () => captureFrame(btn));
-    container.appendChild(btn);
+
+    // If this is the title container, insert BEFORE the <h1> so it sits to the left.
+    const h1 = container.querySelector('h1');
+    if (h1) {
+      // Add a flex row helper class (lightweight & scoped) only once.
+      container.classList.add('yt-frame-snap-title-row');
+      container.insertBefore(btn, h1);
+    } else {
+      container.appendChild(btn);
+    }
     return true;
   }
 
