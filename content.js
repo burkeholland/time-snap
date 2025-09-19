@@ -37,9 +37,132 @@
     btn.setAttribute('aria-label', 'Capture current frame');
     btn.title = 'Capture current frame';
     btn.innerHTML = CAMERA_SVG;
-    btn.addEventListener('click', () => console.info('[YT Frame Snap] capture requested (logic pending)'));
+    btn.addEventListener('click', () => captureFrame(btn));
     container.appendChild(btn);
     return true;
+  }
+
+  // ------------ Step 4: Frame Capture Core Logic (MVP) ------------
+  const LARGE_FRAME_PIXEL_THRESHOLD = 33000000; // ~33 MP safety log threshold
+  let captureInProgress = false;
+
+  function buildFilename(currentTimeSeconds) {
+    let title = '';
+    const h1 = document.querySelector('h1.title') || document.querySelector('h1');
+    if (h1 && h1.textContent) title = h1.textContent.trim();
+    if (!title) title = document.title || 'frame';
+    title = title.toLowerCase();
+    // replace whitespace with underscores
+    title = title.replace(/\s+/g, '_');
+    // remove disallowed chars
+    title = title.replace(/[^a-z0-9_\-]+/g, '');
+    if (title.length > 60) title = title.slice(0, 60);
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    const hrs = Math.floor(currentTimeSeconds / 3600);
+    const mins = Math.floor((currentTimeSeconds % 3600) / 60);
+    const secs = Math.floor(currentTimeSeconds % 60);
+    const ts = (hrs > 0 ? pad(hrs) + '-' : '') + pad(mins) + '-' + pad(secs);
+    return `${title}_${ts}.png`;
+  }
+
+  function captureFrame(buttonEl) {
+    if (captureInProgress) {
+      console.info('[YT Frame Snap] capture already in progress');
+      return;
+    }
+    const video = document.querySelector('video.html5-main-video') || document.querySelector('video');
+    if (!video) {
+      console.warn('[YT Frame Snap] No video element found');
+      return;
+    }
+    if (video.readyState < 2) { // HAVE_CURRENT_DATA
+      console.warn('[YT Frame Snap] Frame not ready (readyState < 2)');
+      return;
+    }
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) {
+      console.warn('[YT Frame Snap] Video has invalid dimensions');
+      return;
+    }
+    const pixelCount = w * h;
+    if (pixelCount > LARGE_FRAME_PIXEL_THRESHOLD) {
+      console.warn(`[YT Frame Snap] Very large frame (${w}x${h}) may be memory intensive`);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('[YT Frame Snap] Unable to get 2D context');
+      return;
+    }
+
+    captureInProgress = true;
+    if (buttonEl) {
+      buttonEl.disabled = true;
+      buttonEl.dataset.capturing = '1';
+    }
+
+    try {
+      ctx.drawImage(video, 0, 0, w, h);
+    } catch (err) {
+      console.error('[YT Frame Snap] drawImage failed (possibly protected content):', err);
+      resetButton(buttonEl);
+      return;
+    }
+
+    // Prefer toBlob for efficiency; fallback to dataURL if necessary.
+    if (canvas.toBlob) {
+      canvas.toBlob(blob => {
+        if (!blob) {
+          console.error('[YT Frame Snap] toBlob returned null blob');
+          resetButton(buttonEl);
+          return;
+        }
+        saveBlob(blob, video.currentTime);
+        resetButton(buttonEl);
+      }, 'image/png');
+    } else {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const byteString = atob(dataUrl.split(',')[1]);
+        const len = byteString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = byteString.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'image/png' });
+        saveBlob(blob, video.currentTime);
+      } catch (e) {
+        console.error('[YT Frame Snap] Fallback toDataURL failed:', e);
+      } finally {
+        resetButton(buttonEl);
+      }
+    }
+  }
+
+  function saveBlob(blob, currentTime) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = buildFilename(currentTime);
+    // Some browsers require element in DOM
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 4000);
+    console.info('[YT Frame Snap] Frame captured & download triggered');
+  }
+
+  function resetButton(buttonEl) {
+    captureInProgress = false;
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      delete buttonEl.dataset.capturing;
+    }
   }
 
   /**

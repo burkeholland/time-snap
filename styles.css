@@ -6,3 +6,33 @@
 :root {
   --yt-frame-snap-initialized: 1;
 }
+
+/* Basic visible styling for capture button */
+.yt-frame-snap-btn {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: background .2s, transform .15s;
+  font: inherit;
+}
+.yt-frame-snap-btn:hover { background: rgba(0,0,0,0.75); transform: scale(1.06); }
+.yt-frame-snap-btn:active { transform: scale(0.95); }
+.yt-frame-snap-btn:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
+@media (prefers-color-scheme: light) {
+  .yt-frame-snap-btn { background: rgba(0,0,0,0.55); }
+}
+@media (prefers-color-scheme: dark) {
+  .yt-frame-snap-btn { background: rgba(255,255,255,0.18); color: #fff; }
+  .yt-frame-snap-btn:hover { background: rgba(255,255,255,0.3); }
+}
