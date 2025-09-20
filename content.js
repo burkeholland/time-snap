@@ -6,6 +6,47 @@
   // Inline camera SVG icon (accessible, presentational)
   const CAMERA_SVG = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9.4 5l1.2-2h2.8l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2h5.4zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-2.2A2.8 2.8 0 1 1 12 9a2.8 2.8 0 0 1 0 5.8z"/></svg>';
 
+  // ---------------- Toast / Feedback (Step 5) ----------------
+  // Placed early to avoid temporal dead zone when start() may run synchronously.
+  let toastContainer = null;
+  let toastDismissTimer = null;
+
+  function initToast() {
+    if (toastContainer) return;
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'yt-frame-snap-toast-container';
+    toastContainer.setAttribute('role', 'status');
+    toastContainer.setAttribute('aria-live', 'polite');
+    toastContainer.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(toastContainer);
+  }
+
+  /**
+   * Show a transient toast. Types: success | error | warn | info
+   */
+  function showToast(message, type = 'info', opts = {}) {
+    if (!toastContainer) initToast();
+    const duration = opts.duration || (type === 'error' ? 4000 : 2500);
+    // Reuse existing toast element if present for smoother updates
+    let toast = toastContainer.querySelector('.yt-frame-snap-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'yt-frame-snap-toast';
+      toastContainer.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.dataset.type = type;
+    // Force reflow for animation restart
+    toast.classList.remove('show');
+    void toast.offsetWidth; // reflow
+    toast.classList.add('show');
+    if (toastDismissTimer) clearTimeout(toastDismissTimer);
+    toastDismissTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      // Delay removal to allow fade-out (CSS handles opacity)
+    }, duration);
+  }
+
   // Find a reasonable container near title / actions.
   // We special-case the actual title container so we can place the button *before* the <h1>
   // to keep the button visually locked to the left of the title text (instead of dropping below).
@@ -80,27 +121,27 @@
 
   function captureFrame(buttonEl) {
     if (captureInProgress) {
-      console.info('[YT Frame Snap] capture already in progress');
+      showToast('Capture already in progress', 'info');
       return;
     }
     const video = document.querySelector('video.html5-main-video') || document.querySelector('video');
     if (!video) {
-      console.warn('[YT Frame Snap] No video element found');
+      showToast('Video not found', 'error');
       return;
     }
     if (video.readyState < 2) { // HAVE_CURRENT_DATA
-      console.warn('[YT Frame Snap] Frame not ready (readyState < 2)');
+      showToast('Frame not ready', 'warn');
       return;
     }
     const w = video.videoWidth;
     const h = video.videoHeight;
     if (!w || !h) {
-      console.warn('[YT Frame Snap] Video has invalid dimensions');
+      showToast('Invalid video dimensions', 'error');
       return;
     }
     const pixelCount = w * h;
     if (pixelCount > LARGE_FRAME_PIXEL_THRESHOLD) {
-      console.warn(`[YT Frame Snap] Very large frame (${w}x${h}) may be memory intensive`);
+      showToast(`Large frame ${w}x${h}`, 'info');
     }
 
     const canvas = document.createElement('canvas');
@@ -122,6 +163,7 @@
       ctx.drawImage(video, 0, 0, w, h);
     } catch (err) {
       console.error('[YT Frame Snap] drawImage failed (possibly protected content):', err);
+      showToast('Capture blocked (protected content)', 'error');
       resetButton(buttonEl);
       return;
     }
@@ -131,6 +173,7 @@
       canvas.toBlob(blob => {
         if (!blob) {
           console.error('[YT Frame Snap] toBlob returned null blob');
+          showToast('Capture failed', 'error');
           resetButton(buttonEl);
           return;
         }
@@ -148,6 +191,7 @@
         saveBlob(blob, video.currentTime);
       } catch (e) {
         console.error('[YT Frame Snap] Fallback toDataURL failed:', e);
+        showToast('Capture failed', 'error');
       } finally {
         resetButton(buttonEl);
       }
@@ -244,5 +288,6 @@
     observeNavigation();
     document.documentElement.setAttribute('data-yt-frame-snap-loaded', '1');
     console.info('[YT Frame Snap] started');
+    initToast();
   }
 })();

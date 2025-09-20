@@ -1,13 +1,4 @@
-/* YouTube Frame Snap - Step 1 skeleton styles.
- * Real styling for button & toast will arrive in Step 6.
- */
-
-/* Placeholder rule to verify CSS loads (harmless). */
-:root {
-  --yt-frame-snap-initialized: 1;
-}
-
-/* Basic visible styling for capture button */
+/* Capture button */
 .yt-frame-snap-btn {
   cursor: pointer;
   width: 32px;
@@ -37,12 +28,40 @@
   .yt-frame-snap-btn:hover { background: rgba(255,255,255,0.3); }
 }
 
-/* Layout helper so button sits inline left of the title */
+/* Inline with title */
 .yt-frame-snap-title-row {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
 }
 
-/* Ensure the button never stretches */
+/* Prevent stretch */
 .yt-frame-snap-title-row > .yt-frame-snap-btn { flex: 0 0 auto; }
+
+/* Toast */
+#yt-frame-snap-toast-container { position: fixed; bottom: 16px; right: 16px; z-index: 2147483647; pointer-events: none; font-family: Roboto, Arial, sans-serif; }
+
+.yt-frame-snap-toast {
+  min-width: 140px;
+  max-width: 320px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.78);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.3;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  opacity: 0;
+  transform: translateY(6px) scale(.96);
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+}
+.yt-frame-snap-toast.show { opacity: 1; transform: translateY(0) scale(1); }
+@media (prefers-color-scheme: light) { .yt-frame-snap-toast { background: rgba(0,0,0,0.80); } }
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .yt-frame-snap-toast { transition: none; }
+}
