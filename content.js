@@ -6,6 +6,31 @@
   // Inline camera SVG icon (accessible, presentational)
   const CAMERA_SVG = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9.4 5l1.2-2h2.8l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2h5.4zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-2.2A2.8 2.8 0 1 1 12 9a2.8 2.8 0 0 1 0 5.8z"/></svg>';
 
+  // ---------------- Format Preferences ----------------
+  let currentFormat = 'png'; // Default format
+  
+  function sanitizeFormat(format) {
+    if (format === 'jpeg' || format === 'png') {
+      return format;
+    }
+    return 'png'; // Default fallback
+  }
+  
+  function toggleFormat() {
+    currentFormat = currentFormat === 'png' ? 'jpeg' : 'png';
+    currentFormat = sanitizeFormat(currentFormat); // Ensure valid format
+    updateFormatDisplay();
+    console.log(`[YT Frame Snap] Format toggled to: ${currentFormat}`);
+  }
+  
+  function updateFormatDisplay() {
+    const btn = document.getElementById(BUTTON_ID);
+    if (btn) {
+      btn.title = `Capture current frame (${currentFormat.toUpperCase()})`;
+      btn.setAttribute('aria-label', `Capture current frame as ${currentFormat.toUpperCase()}`);
+    }
+  }
+
   // ---------------- Toast / Feedback (Step 5) ----------------
   // Placed early to avoid temporal dead zone when start() may run synchronously.
   let toastContainer = null;
@@ -78,10 +103,17 @@
     btn.id = BUTTON_ID;
     btn.type = 'button';
     btn.className = 'yt-frame-snap-btn';
-    btn.setAttribute('aria-label', 'Capture current frame');
-    btn.title = 'Capture current frame';
+    btn.setAttribute('aria-label', `Capture current frame as ${currentFormat.toUpperCase()}`);
+    btn.title = `Capture current frame (${currentFormat.toUpperCase()})`;
     btn.innerHTML = CAMERA_SVG;
-    btn.addEventListener('click', () => captureFrame(btn));
+    btn.addEventListener('click', (e) => {
+      if (e.shiftKey) {
+        // Shift+click to toggle format
+        toggleFormat();
+      } else {
+        captureFrame(btn);
+      }
+    });
 
     // If this is the title container, insert BEFORE the <h1> so it sits to the left.
     const h1 = container.querySelector('h1');
@@ -99,7 +131,7 @@
   const LARGE_FRAME_PIXEL_THRESHOLD = 33000000; // ~33 MP safety log threshold
   let captureInProgress = false;
 
-  function buildFilename(currentTimeSeconds) {
+  function buildFilename(currentTimeSeconds, format = 'png') {
     let title = '';
     const h1 = document.querySelector('h1.title') || document.querySelector('h1');
     if (h1 && h1.textContent) title = h1.textContent.trim();
@@ -116,7 +148,7 @@
     const mins = Math.floor((currentTimeSeconds % 3600) / 60);
     const secs = Math.floor(currentTimeSeconds % 60);
     const ts = (hrs > 0 ? pad(hrs) + '-' : '') + pad(mins) + '-' + pad(secs);
-    return `${title}_${ts}.png`;
+    return `${title}_${ts}.${format}`;
   }
 
   function captureFrame(buttonEl) {
@@ -169,6 +201,9 @@
     }
 
     // Prefer toBlob for efficiency; fallback to dataURL if necessary.
+    const mimeType = `image/${currentFormat}`;
+    const quality = currentFormat === 'jpeg' ? 0.9 : undefined; // JPEG quality
+    
     if (canvas.toBlob) {
       canvas.toBlob(blob => {
         if (!blob) {
@@ -177,18 +212,18 @@
           resetButton(buttonEl);
           return;
         }
-        saveBlob(blob, video.currentTime);
+        saveBlob(blob, video.currentTime, currentFormat);
         resetButton(buttonEl);
-      }, 'image/png');
+      }, mimeType, quality);
     } else {
       try {
-        const dataUrl = canvas.toDataURL('image/png');
+        const dataUrl = canvas.toDataURL(mimeType, quality);
         const byteString = atob(dataUrl.split(',')[1]);
         const len = byteString.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) bytes[i] = byteString.charCodeAt(i);
-        const blob = new Blob([bytes], { type: 'image/png' });
-        saveBlob(blob, video.currentTime);
+        const blob = new Blob([bytes], { type: mimeType });
+        saveBlob(blob, video.currentTime, currentFormat);
       } catch (e) {
         console.error('[YT Frame Snap] Fallback toDataURL failed:', e);
         showToast('Capture failed', 'error');
@@ -198,11 +233,11 @@
     }
   }
 
-  function saveBlob(blob, currentTime) {
+  function saveBlob(blob, currentTime, format = 'png') {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = buildFilename(currentTime);
+    a.download = buildFilename(currentTime, format);
     // Some browsers require element in DOM
     document.body.appendChild(a);
     a.click();
@@ -210,7 +245,7 @@
       URL.revokeObjectURL(url);
       a.remove();
     }, 4000);
-    console.info('[YT Frame Snap] Frame captured & download triggered');
+    console.info(`[YT Frame Snap] Frame captured as ${format.toUpperCase()} & download triggered`);
   }
 
   function resetButton(buttonEl) {
