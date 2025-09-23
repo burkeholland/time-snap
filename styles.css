@@ -1,3 +1,107 @@
+/* Panel & Controls */
+.yt-frame-snap-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-right: 8px;
+}
+
+.yt-frame-snap-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.32);
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.yt-frame-snap-controls fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.yt-frame-snap-controls legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+}
+
+.yt-frame-snap-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  transition: background .2s ease;
+  font-weight: 500;
+}
+
+.yt-frame-snap-radio-label input[type="radio"] {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  position: relative;
+}
+
+.yt-frame-snap-radio-label input[type="radio"]::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+
+.yt-frame-snap-radio-label input[type="radio"]:checked::after {
+  opacity: 1;
+}
+
+.yt-frame-snap-radio-label:hover,
+.yt-frame-snap-radio-label input[type="radio"]:focus-visible + span {
+  background: rgba(255,255,255,0.18);
+}
+
+.yt-frame-snap-controls[data-theme="light"] {
+  background: rgba(0,0,0,0.45);
+}
+
+.yt-frame-snap-quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.yt-frame-snap-quality.hidden {
+  display: none !important;
+}
+
+.yt-frame-snap-quality input[type="range"] {
+  width: 80px;
+  accent-color: #3ea6ff;
+  cursor: pointer;
+}
+
+.yt-frame-snap-quality-value {
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Capture button */
 .yt-frame-snap-btn {
   cursor: pointer;
@@ -20,23 +124,25 @@
 .yt-frame-snap-btn:hover { background: rgba(0,0,0,0.75); transform: scale(1.06); }
 .yt-frame-snap-btn:active { transform: scale(0.95); }
 .yt-frame-snap-btn:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
+.yt-frame-snap-btn[data-capturing="1"] { transform: scale(0.92); opacity: 0.8; }
 @media (prefers-color-scheme: light) {
   .yt-frame-snap-btn { background: rgba(0,0,0,0.55); }
+  .yt-frame-snap-controls { background: rgba(0,0,0,0.4); }
 }
 @media (prefers-color-scheme: dark) {
   .yt-frame-snap-btn { background: rgba(255,255,255,0.18); color: #fff; }
   .yt-frame-snap-btn:hover { background: rgba(255,255,255,0.3); }
+  .yt-frame-snap-controls { background: rgba(255,255,255,0.14); }
+  .yt-frame-snap-radio-label:hover { background: rgba(255,255,255,0.22); }
 }
 
 /* Inline with title */
 .yt-frame-snap-title-row {
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
 }
-
-/* Prevent stretch */
-.yt-frame-snap-title-row > .yt-frame-snap-btn { flex: 0 0 auto; }
 
 /* Toast */
 #yt-frame-snap-toast-container { position: fixed; bottom: 16px; right: 16px; z-index: 2147483647; pointer-events: none; font-family: Roboto, Arial, sans-serif; }

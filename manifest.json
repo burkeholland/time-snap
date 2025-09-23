@@ -9,11 +9,17 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "permissions": ["storage"],
   "host_permissions": ["https://www.youtube.com/*"],
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "src/preferences.js",
+        "src/captureOptions.js",
+        "src/filename.js",
+        "content.js"
+      ],
       "css": ["styles.css"],
       "run_at": "document_end"
     }
