@@ -58,6 +58,15 @@ describe('normalizePreferences', () => {
     expect(result.jpegQuality).toBe(JPEG_QUALITY_MIN);
     expect(result.lastUpdated).toBe(now);
   });
+
+  test('accepts png format correctly', () => {
+    const result = normalizePreferences({
+      format: 'png',
+      jpegQuality: 80
+    });
+    expect(result.format).toBe('png');
+    expect(result.jpegQuality).toBe(80);
+  });
 });
 
 describe('preparePreferencesUpdate', () => {
@@ -96,5 +105,35 @@ describe('preparePreferencesUpdate', () => {
       { format: 'webp' }
     );
     expect(result).toEqual({ format: 'jpeg', jpegQuality: 82, lastUpdated: now });
+  });
+
+  test('allows transition from JPEG to PNG', () => {
+    const now = 1800000000000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+    const result = preparePreferencesUpdate(
+      { format: 'jpeg', jpegQuality: 85, lastUpdated: 1 },
+      { format: 'png' }
+    );
+    expect(result).toEqual({ format: 'png', jpegQuality: 85, lastUpdated: now });
+  });
+
+  test('allows transition from PNG to JPEG', () => {
+    const now = 1810000000000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+    const result = preparePreferencesUpdate(
+      { format: 'png', jpegQuality: 90, lastUpdated: 1 },
+      { format: 'jpeg' }
+    );
+    expect(result).toEqual({ format: 'jpeg', jpegQuality: 90, lastUpdated: now });
+  });
+
+  test('respects case normalization for format values', () => {
+    const now = 1820000000000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+    const result = preparePreferencesUpdate(
+      { format: 'jpeg', jpegQuality: 75, lastUpdated: 1 },
+      { format: 'PNG' }
+    );
+    expect(result).toEqual({ format: 'png', jpegQuality: 75, lastUpdated: now });
   });
 });
