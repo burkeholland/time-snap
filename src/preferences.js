@@ -27,7 +27,8 @@
 
   function sanitizeFormat(value, fallback = DEFAULT_PREFS.format) {
     const format = String(value || '').toLowerCase();
-    return format === 'jpeg' ? 'jpeg' : fallback;
+    const ALLOWED_FORMATS = new Set(['png', 'jpeg']);
+    return ALLOWED_FORMATS.has(format) ? format : fallback;
   }
 
   function normalizePreferences(raw) {
