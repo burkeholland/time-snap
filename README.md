@@ -10,7 +10,8 @@ Implemented from the plan: injection utilities, SPA navigation detection, frame 
 ## Features
 - Single unobtrusive capture button inserted next to the video title.
 - Captures the exact resolution of the underlying `<video>` (supports HD/4K/8K; warns for extremely large frames).
-- Timestamped filename: `video_title_HH-MM-SS.png` (hours included only if non‑zero).
+- **Format toggle**: Supports both PNG and JPEG formats. Shift+click button to toggle between formats.
+- Timestamped filename: `video_title_HH-MM-SS.{format}` (hours included only if non‑zero).
 - Handles YouTube SPA navigation (switching videos without full page reload) & Shorts URLs.
 - Graceful error toasts for: video not ready, protected/DRM content, missing video element.
 - Minimal permissions (host access only). No background network calls. No analytics.
@@ -25,15 +26,21 @@ Implemented from the plan: injection utilities, SPA navigation detection, frame 
 1. Navigate to any YouTube watch page.
 2. Wait until the capture button appears beside the title.
 3. Seek/pause/play to desired frame (frame capture works while paused or playing).
-4. Click the button – a PNG download is triggered immediately (no success toast; errors show a toast).
-5. Find the file in your default download folder.
+4. **Format Selection**: 
+   - Regular click: Capture in current format (default: PNG)
+   - Shift+click: Toggle between PNG and JPEG formats
+5. Click the button – an image download is triggered immediately (no success toast; errors show a toast).
+6. Find the file in your default download folder with appropriate extension (.png or .jpeg).
 
 ## Filename Pattern
-`<normalized_title>_<HH-MM-SS>.png`
+`<normalized_title>_<HH-MM-SS>.{format}`
 - Title normalization: lowercase, spaces → `_`, strip non `[a-z0-9_\-]`, truncate to 60 chars.
 - Timestamp based on video `currentTime` (hours only included if > 0).
+- Format: `png` (default, lossless) or `jpeg` (compressed, 90% quality)
 
-Example: `amazing_travel_vlog_07-23.png`
+Examples: 
+- `amazing_travel_vlog_07-23.png`
+- `amazing_travel_vlog_07-23.jpeg`
 
 ## Permissions & Privacy
 | Type | Why | Notes |
@@ -45,13 +52,14 @@ Example: `amazing_travel_vlog_07-23.png`
 
 ## Limitations / Known Behaviors
 - DRM / protected streams or some ads may block canvas draw (toast: *Capture blocked*).
+- JPEG format uses 90% quality setting for optimal file size vs quality balance.
 - During ad playback, captured frame will be from the ad; future enhancement may optionally suppress.
 - Extremely high resolutions (e.g., 8K) may briefly spike memory when creating the canvas.
 - Fullscreen mode currently depends on YouTube layout; button may move off-screen (future enhancement: floating overlay).
-- Only PNG format in MVP.
+
 
 ## Roadmap (Planned Enhancements)
-1. Options page (format selection: PNG/JPEG/WebP + quality for lossy formats).
+1. Options page (quality settings for JPEG, additional formats like WebP).
 2. Keyboard shortcut (e.g. `Ctrl+Shift+F`) to capture without clicking.
 3. Clipboard copy (with explicit permission) in addition to download.
 4. Burst / sequence capture or short GIF generation.
